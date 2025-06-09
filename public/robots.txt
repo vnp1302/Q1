@@ -1,0 +1,31 @@
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /secure/
+Disallow: /logs/
+Disallow: /monitoring/
+Disallow: /compliance/
+Disallow: /.env
+Disallow: /scripts/
+Disallow: /certs/
+Disallow: /docker/
+
+# Allow access to public documentation
+Allow: /docs/public/
+Allow: /security/disclosure-policy
+Allow: /.well-known/
+
+# Security-related paths that should never be crawled
+Disallow: /src/
+Disallow: /tests/
+Disallow: /.git/
+Disallow: /node_modules/
+Disallow: /backup/
+Disallow: /tmp/
+
+Sitemap: https://q2platform.com/sitemap.xml
+
+# Additional security measures
+# This robots.txt file helps prevent search engines from indexing
+# sensitive areas of the application that could reveal information
+# useful to attackers during reconnaissance phases
