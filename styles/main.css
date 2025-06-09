@@ -1,0 +1,238 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Vazir:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Color System */
+  --color-primary: #00cccc;
+  --color-secondary: #2c5364;
+  --color-accent: #F59E0B;
+  --color-dark: #1E293B;
+  --color-light: #F8FAFC;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  --gradient-dark: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  --gradient-accent: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  
+  /* Theme Colors - Light */
+  --background-color: #F8FAFC;
+  --surface-color: #FFFFFF;
+  --text-color: #1E293B;
+  --text-secondary: #64748B;
+  --border-color: #E2E8F0;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  
+  /* Typography */
+  --font-family-default: 'Inter', sans-serif;
+  --font-family-persian: 'Vazir', 'Inter', sans-serif;
+  --font-family-arabic: 'Tajawal', 'Inter', sans-serif;
+  --font-family-chinese: 'Noto Sans SC', sans-serif;
+  
+  /* Font Sizes */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  --background-color: #1E293B;
+  --surface-color: #334155;
+  --text-color: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --border-color: #475569;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  font-family: var(--font-family-persian);
+}
+
+[dir="rtl"][lang="ar"] {
+  font-family: var(--font-family-arabic);
+}
+
+[lang="zh"] {
+  font-family: var(--font-family-chinese);
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family-default);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* Security - Disable text selection for sensitive areas */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Trading Bot Specific Styles */
+.trading-dashboard {
+  background: var(--gradient-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.chart-container {
+  background: var(--surface-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+}
+
+.bot-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.bot-status.active {
+  background-color: #10B981;
+  color: white;
+}
+
+.bot-status.inactive {
+  background-color: #EF4444;
+  color: white;
+}
+
+.bot-status.paused {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .trading-dashboard {
+    padding: var(--spacing-lg);
+  }
+  
+  .chart-container {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --text-secondary: var(--text-color);
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
