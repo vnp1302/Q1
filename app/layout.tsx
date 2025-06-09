@@ -1,13 +1,18 @@
 import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
-
-const inter = Inter({ subsets: ["latin"] })
+import { ThemeProvider } from "@/components/theme-provider"
+import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Q2 Token Platform",
-  description: "Secure Trading Platform with Advanced Security Features",
+  description: "A secure token platform with advanced security features",
+  // تنظیم هدرهای امنیتی اضافی در متادیتا
+  other: {
+    referrer: "strict-origin-when-cross-origin",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "permissions-policy": "geolocation=(), camera=(), microphone=()",
+  },
 }
 
 export default function RootLayout({
@@ -16,8 +21,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <head />
+      <body>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }
