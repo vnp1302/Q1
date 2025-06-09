@@ -1,71 +1,105 @@
-import crypto from "crypto"
-import { securityConfig } from "../../security-config"
+import crypto from "crypto";
+
+interface EncryptionConfig {
+  algorithm: string;
+  keySize: number;
+  ivSize: number;
+  authTagLength: number;
+  aad?: string;
+}
+
+const DEFAULT_CONFIG: EncryptionConfig = {
+  algorithm: "aes-256-gcm",
+  keySize: 32, // 256 bits
+  ivSize: 12,  // 96 bits - recommended for GCM
+  authTagLength: 16,
+  aad: "Q2-Platform-Auth",
+};
 
 export class SymmetricEncryption {
-  private readonly algorithm = securityConfig.encryption.algorithm
-  private readonly keySize = securityConfig.encryption.keySize
-  private readonly ivSize = securityConfig.encryption.ivSize
+  private readonly config: EncryptionConfig;
 
-  /**
-   * Generate a random encryption key
-   */
-  generateKey(): Buffer {
-    return crypto.randomBytes(this.keySize)
+  constructor(config: Partial<EncryptionConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  /**
-   * Encrypt data using AES-256-GCM
-   */
-  encrypt(data: string, key: Buffer): { encrypted: string; iv: string; tag: string } {
-    const iv = crypto.randomBytes(this.ivSize)
-    const cipher = crypto.createCipher(this.algorithm, key)
-    cipher.setAAD(Buffer.from("Q2-Platform-Auth"))
+  generateKey(): Buffer {
+    return crypto.randomBytes(this.config.keySize);
+  }
 
-    let encrypted = cipher.update(data, "utf8", "hex")
-    encrypted += cipher.final("hex")
+  encrypt(data: string, key: Buffer): { ciphertext: string; iv: string; tag: string } {
+    if (key.length !== this.config.keySize) {
+      throw new Error(`Invalid key length. Expected ${this.config.keySize} bytes`);
+    }
 
-    const tag = cipher.getAuthTag()
+    const iv = crypto.randomBytes(this.config.ivSize);
+    const cipher = crypto.createCipheriv(this.config.algorithm, key, iv) as crypto.CipherGCM;
+
+    // تنظیم authTagLength به صورت جداگانه
+    cipher.setAutoPadding(true);
+    
+    if (this.config.aad) {
+      cipher.setAAD(Buffer.from(this.config.aad), {
+        plaintextLength: Buffer.from(data).length,
+      });
+    }
+
+    let ciphertext = cipher.update(data, "utf8", "hex");
+    ciphertext += cipher.final("hex");
+    const tag = cipher.getAuthTag();
 
     return {
-      encrypted,
+      ciphertext,
       iv: iv.toString("hex"),
       tag: tag.toString("hex"),
+    };
+  }
+
+  decrypt(encryptedData: string, key: Buffer, iv: string, tag: string): string {
+    if (key.length !== this.config.keySize) {
+      throw new Error(`Invalid key length. Expected ${this.config.keySize} bytes`);
+    }
+
+    const decipher = crypto.createDecipheriv(
+      this.config.algorithm,
+      key,
+      Buffer.from(iv, "hex")
+    ) as crypto.DecipherGCM;
+
+    decipher.setAuthTag(Buffer.from(tag, "hex"));
+    
+    if (this.config.aad) {
+      decipher.setAAD(Buffer.from(this.config.aad));
+    }
+
+    let decrypted = decipher.update(encryptedData, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+
+    return decrypted;
+  }
+
+  encryptJSON(data: object, key: Buffer): string {
+    try {
+      const jsonData = JSON.stringify(data);
+      const { ciphertext, iv, tag } = this.encrypt(jsonData, key);
+      return Buffer.from(JSON.stringify({ ciphertext, iv, tag })).toString("base64");
+    } catch (error) {
+      throw new Error(`Encryption failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  /**
-   * Decrypt data using AES-256-GCM
-   */
-  decrypt(encryptedData: string, key: Buffer, iv: string, tag: string): string {
-    const decipher = crypto.createDecipher(this.algorithm, key)
-    decipher.setAAD(Buffer.from("Q2-Platform-Auth"))
-    decipher.setAuthTag(Buffer.from(tag, "hex"))
-
-    let decrypted = decipher.update(encryptedData, "hex", "utf8")
-    decrypted += decipher.final("utf8")
-
-    return decrypted
-  }
-
-  /**
-   * Encrypt sensitive trading data
-   */
-  encryptTradingData(data: any, key: Buffer): string {
-    const jsonData = JSON.stringify(data)
-    const { encrypted, iv, tag } = this.encrypt(jsonData, key)
-
-    return Buffer.from(JSON.stringify({ encrypted, iv, tag })).toString("base64")
-  }
-
-  /**
-   * Decrypt sensitive trading data
-   */
-  decryptTradingData(encryptedData: string, key: Buffer): any {
-    const decoded = JSON.parse(Buffer.from(encryptedData, "base64").toString())
-    const decrypted = this.decrypt(decoded.encrypted, key, decoded.iv, decoded.tag)
-
-    return JSON.parse(decrypted)
+  decryptJSON<T = any>(encryptedData: string, key: Buffer): T {
+    try {
+      const decoded = JSON.parse(Buffer.from(encryptedData, "base64").toString());
+      if (!decoded.ciphertext || !decoded.iv || !decoded.tag) {
+        throw new Error("Invalid encrypted data format");
+      }
+      const decrypted = this.decrypt(decoded.ciphertext, key, decoded.iv, decoded.tag);
+      return JSON.parse(decrypted);
+    } catch (error) {
+      throw new Error(`Decryption failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }
 
-export const symmetricEncryption = new SymmetricEncryption()
+export const symmetricEncryption = new SymmetricEncryption();
