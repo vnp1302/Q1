@@ -1,1 +1,57 @@
-// placeholder content for security-audit.yml
+name: Complete Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 6 * * 1' # هر دوشنبه ساعت 6 صبح
+
+jobs:
+  security-scan:
+    name: Multi-Layer Security Scan
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        scan-type: [dependencies, code, secrets, docker]
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Dependency Scan
+        if: matrix.scan-type == 'dependencies'
+        run: |
+          npm audit --audit-level=moderate
+          npx retire --js --node
+
+      - name: Code Security Scan
+        if: matrix.scan-type == 'code'
+        run: |
+          npx eslint . --ext .js,.jsx,.ts,.tsx --config .eslintrc.security.js
+          
+      - name: Secret Scan
+        if: matrix.scan-type == 'secrets'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+      - name: Docker Security Scan
+        if: matrix.scan-type == 'docker'
+        run: |
+          docker build -t q2-platform .
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $(pwd):/root/.cache/ aquasec/trivy:latest image q2-platform
