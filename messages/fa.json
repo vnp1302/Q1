@@ -1,0 +1,14 @@
+{
+  "common": {
+    "welcome": "به پلتفرم Q2 خوش آمدید",
+    "loading": "در حال بارگذاری...",
+    "error": "خطایی رخ داده است",
+    "success": "موفقیت آمیز"
+  },
+  "navigation": {
+    "dashboard": "داشبورد",
+    "trading": "معاملات",
+    "portfolio": "پورتفولیو",
+    "settings": "تنظیمات"
+  }
+}
