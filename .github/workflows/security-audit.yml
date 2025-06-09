@@ -1,57 +1,52 @@
-name: Complete Security Scan
+name: Security Audit
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   schedule:
-    - cron: '0 6 * * 1' # هر دوشنبه ساعت 6 صبح
+    - cron: '0 0 * * 0'  # هر یکشنبه در نیمه شب
 
 jobs:
-  security-scan:
-    name: Multi-Layer Security Scan
+  security-audit:
+    name: Security Audit
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        scan-type: [dependencies, code, secrets, docker]
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-
-      - name: Install Dependencies
+      
+      - name: Install dependencies
         run: npm ci
-
-      - name: Dependency Scan
-        if: matrix.scan-type == 'dependencies'
-        run: |
-          npm audit --audit-level=moderate
-          npx retire --js --node
-
-      - name: Code Security Scan
-        if: matrix.scan-type == 'code'
-        run: |
-          npx eslint . --ext .js,.jsx,.ts,.tsx --config .eslintrc.security.js
-          
-      - name: Secret Scan
-        if: matrix.scan-type == 'secrets'
-        uses: trufflesecurity/trufflehog@main
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+      
+      - name: Run ESLint security checks
+        run: npx eslint --config .eslintrc.security.js --ext .js,.jsx,.ts,.tsx src/
+      
+      - name: Run NodeSecure scanner
+        run: npx @nodesecure/scanner --input .
+      
+      - name: Run SRI hash generation
+        run: bash scripts/security/frontend/generate-sri.sh
+      
+      - name: Run security tests
+        run: npm run test:security
+      
+      - name: Check for outdated dependencies
+        run: npm outdated --depth=0
+      
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          path: ./
-          base: main
-          head: HEAD
-
-      - name: Docker Security Scan
-        if: matrix.scan-type == 'docker'
-        run: |
-          docker build -t q2-platform .
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            -v $(pwd):/root/.cache/ aquasec/trivy:latest image q2-platform
+          args: --severity-threshold=medium
