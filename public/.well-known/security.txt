@@ -1,0 +1,33 @@
+Contact: security@q2platform.com
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://q2platform.com/pgp-key.txt
+Acknowledgments: https://q2platform.com/security/hall-of-fame
+Preferred-Languages: en, fa
+Canonical: https://q2platform.com/.well-known/security.txt
+Policy: https://q2platform.com/security/disclosure-policy
+
+# Security Contact Information
+# Report security vulnerabilities to our security team
+# We appreciate responsible disclosure and will respond within 24 hours
+# Bug bounty program available for qualifying vulnerabilities
+
+# Scope:
+# - Authentication bypass
+# - SQL injection
+# - Cross-site scripting (XSS)
+# - Remote code execution
+# - Privilege escalation
+# - Cryptographic vulnerabilities
+# - Trading system vulnerabilities
+
+# Out of scope:
+# - Social engineering attacks
+# - Physical security issues
+# - Denial of service attacks
+# - Issues requiring physical access
+
+# Please include:
+# - Detailed description of the vulnerability
+# - Steps to reproduce
+# - Potential impact assessment
+# - Suggested remediation (if available)
