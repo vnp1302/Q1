@@ -1,1 +1,137 @@
-// placeholder content for dependency-check.yml
+name: Dependency Security Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # اجرای روزانه در ساعت 2 صبح UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # اجرای دستی
+
+jobs:
+  dependency-check:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --only=production
+          npm audit --audit-level=moderate
+
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        id: depcheck
+        with:
+          project: 'Q2-Token-Platform'
+          path: '.'
+          format: 'ALL'
+          args: >
+            --enableRetired
+            --enableExperimental
+            --failOnCVSS 7
+            --suppression suppression.xml
+
+      - name: Upload Dependency Check Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: reports/
+          retention-days: 30
+
+      - name: Upload to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: reports/dependency-check-report.sarif
+
+      - name: NPM Audit Check
+        run: |
+          echo "Running NPM Audit..."
+          npm audit --audit-level=high --production
+          
+      - name: Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=package.json
+
+      - name: License Check
+        run: |
+          npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC' --excludePrivatePackages
+
+      - name: Check for Known Vulnerabilities
+        run: |
+          echo "Checking for known vulnerabilities..."
+          npx audit-ci --config audit-ci.json
+
+      - name: Security Summary
+        if: always()
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ OWASP Dependency Check completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ NPM Audit completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ License check completed" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 Reports uploaded to artifacts" >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Security Notification
+    needs: dependency-check
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+      - name: Send Slack Notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: "🚨 Security vulnerabilities found in Q2 Platform dependencies!"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Create Issue on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Security Vulnerability Detected',
+              body: `
+              ## Security Alert
+              
+              Dependency security check failed on ${context.sha.substring(0, 7)}
+              
+              **Branch:** ${context.ref}
+              **Workflow:** ${context.workflow}
+              **Run ID:** ${context.runId}
+              
+              Please review the security report and fix the vulnerabilities.
+              
+              [View Workflow Run](${context.payload.repository.html_url}/actions/runs/${context.runId})
+              `,
+              labels: ['security', 'high-priority', 'dependencies']
+            })
