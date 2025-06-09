@@ -1,0 +1,14 @@
+{
+  "common": {
+    "welcome": "Welcome to Q2 Platform",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "trading": "Trading",
+    "portfolio": "Portfolio",
+    "settings": "Settings"
+  }
+}
