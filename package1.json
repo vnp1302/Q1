@@ -1,0 +1,43 @@
+{
+  "name": "q2-secure",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "security:audit": "npm audit && snyk test",
+    "security:scan": "./scripts/security/monitoring/scan-vulnerabilities.sh",
+    "security:init": "./scripts/security/vault/init-vault.sh",
+    "test:security": "jest tests/security --config=jest.security.config.js",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^5.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "crypto-js": "^4.1.1",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^7.0.0",
+    "winston": "^3.10.0",
+    "joi": "^17.9.0",
+    "speakeasy": "^2.0.0",
+    "@simplewebauthn/server": "^8.0.0",
+    "@simplewebauthn/browser": "^8.0.0"
+  },
+  "devDependencies": {
+    "husky": "^8.0.0",
+    "lint-staged": "^14.0.0",
+    "snyk": "^1.1200.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "eslint-plugin-security": "^1.7.0"
+  }
+}
