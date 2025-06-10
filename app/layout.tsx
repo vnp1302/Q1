@@ -4,16 +4,20 @@ import { Inter, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
+import { CSPostHogProvider } from "@/components/providers/posthog-provider"
+import { SecurityHeaders } from "@/components/security-headers"
 import "./globals.css"
 
 const fontSans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap",
 })
 
 const fontMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+  display: "swap",
 })
 
 export const metadata: Metadata = {
@@ -31,12 +35,7 @@ export const metadata: Metadata = {
   ],
   creator: "Q2 Token Platform",
   publisher: "Q2 Token Platform",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://q2token.com"),
   alternates: {
     canonical: "/",
     languages: {
@@ -81,28 +80,40 @@ export const metadata: Metadata = {
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,
     yandex: process.env.YANDEX_VERIFICATION,
+    other: {
+      "msvalidate.01": process.env.BING_SITE_VERIFICATION,
+    },
+  },
+  other: {
+    "facebook-domain-verification": process.env.FB_DOMAIN_VERIFICATION,
   },
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
+  colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  interactiveWidget: "resizes-content",
 }
 
 interface RootLayoutProps {
   children: React.ReactNode
+  params: {
+    lang: string
+  }
 }
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({ children, params }: RootLayoutProps) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={params.lang || "en"} suppressHydrationWarning className="scroll-smooth">
       <head>
+        <SecurityHeaders />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -112,56 +123,67 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Q2 Token" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        
+        {/* Preload critical resources */}
+        <link rel="preload" href={fontSans.variable} as="style" />
+        <link rel="preload" href={fontMono.variable} as="style" />
+        
+        {/* Security: Preconnect to external domains */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Security: Prevent clickjacking
-              if (window.top !== window.self) {
-                window.top.location = window.self.location;
-              }
-              
-              // Security: Disable right-click in production
-              if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-                document.addEventListener('contextmenu', function(e) {
-                  e.preventDefault();
-                });
-                
-                document.addEventListener('keydown', function(e) {
-                  if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-                    e.preventDefault();
-                  }
-                });
-              }
-            `,
-          }}
-        />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        
+        {/* Performance: DNS prefetch */}
+        <link rel="dns-prefetch" href="https://api.q2token.com" />
       </head>
-      <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable, fontMono.variable)}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <div className="relative flex min-h-screen flex-col">
-            <div className="flex-1">{children}</div>
-          </div>
-          <Toaster />
+      <body
+        className={cn(
+          "min-h-screen bg-background font-sans antialiased",
+          fontSans.variable,
+          fontMono.variable,
+          "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
+        )}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+          storageKey="q2token-theme"
+        >
+          <CSPostHogProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <div className="flex-1">{children}</div>
+            </div>
+            <Toaster />
+          </CSPostHogProvider>
         </ThemeProvider>
 
-        {/* Security: CSP Nonce Script */}
-        <script
-          nonce={process.env.CSP_NONCE}
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Initialize security monitoring
-              window.__SECURITY_CONFIG__ = {
-                cspEnabled: ${process.env.NODE_ENV === "production"},
-                version: '${process.env.NEXT_PUBLIC_APP_VERSION}',
-                environment: '${process.env.NODE_ENV}',
-              };
-            `,
-          }}
-        />
+        {/* Security: Nonce-based scripts */}
+        {process.env.NODE_ENV === "production" && (
+          <script
+            nonce={process.env.CSP_NONCE}
+            dangerouslySetInnerHTML={{
+              __html: `
+                // Security monitoring initialization
+                window.__SECURITY_CONFIG__ = {
+                  version: '${process.env.NEXT_PUBLIC_APP_VERSION}',
+                  env: '${process.env.NODE_ENV}',
+                  cspEnabled: true,
+                  sentryEnabled: ${Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN)},
+                  recaptchaEnabled: ${Boolean(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY)},
+                };
+
+                // Security: Prevent frame embedding
+                if (window.top !== window.self) {
+                  window.top.location = window.self.location;
+                }
+              `,
+            }}
+          />
+        )}
       </body>
     </html>
   )
