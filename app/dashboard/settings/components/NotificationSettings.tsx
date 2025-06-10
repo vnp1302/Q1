@@ -1,182 +1,242 @@
 "use client"
+
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Bell, Mail, Smartphone, TrendingUp, Shield, Wallet } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { useToast } from "@/hooks/use-toast"
+import { Bell, Mail, MessageSquare } from "lucide-react"
 
-interface NotificationSetting {
-  id: string
-  title: string
-  description: string
-  email: boolean
-  push: boolean
-  sms: boolean
-  icon: React.ReactNode
+interface NotificationSettings {
+  email: {
+    transactions: boolean
+    security: boolean
+    marketing: boolean
+    updates: boolean
+  }
+  push: {
+    transactions: boolean
+    priceAlerts: boolean
+    security: boolean
+    news: boolean
+  }
+  sms: {
+    security: boolean
+    transactions: boolean
+  }
 }
 
 export function NotificationSettings() {
-  const [notifications, setNotifications] = useState<NotificationSetting[]>([
-    {
-      id: "security",
-      title: "اعلان‌های امنیتی",
-      description: "ورود جدید، تغییر رمز عبور و فعالیت‌های مشکوک",
-      email: true,
-      push: true,
-      sms: true,
-      icon: <Shield className="w-5 h-5" />,
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false)
+  const [settings, setSettings] = useState<NotificationSettings>({
+    email: {
+      transactions: true,
+      security: true,
+      marketing: false,
+      updates: true,
     },
-    {
-      id: "transactions",
-      title: "تراکنش‌ها",
-      description: "ارسال، دریافت و تأیید تراکنش‌ها",
-      email: true,
-      push: true,
-      sms: false,
-      icon: <Wallet className="w-5 h-5" />,
+    push: {
+      transactions: true,
+      priceAlerts: true,
+      security: true,
+      news: false,
     },
-    {
-      id: "price",
-      title: "تغییرات قیمت",
-      description: "هشدارهای قیمت و تحلیل بازار",
-      email: false,
-      push: true,
-      sms: false,
-      icon: <TrendingUp className="w-5 h-5" />,
+    sms: {
+      security: true,
+      transactions: false,
     },
-    {
-      id: "staking",
-      title: "استیکینگ",
-      description: "پاداش‌ها، انقضا و به‌روزرسانی‌های استیکینگ",
-      email: true,
-      push: false,
-      sms: false,
-      icon: <TrendingUp className="w-5 h-5" />,
-    },
-  ])
+  })
 
-  const updateNotification = (id: string, type: 'email' | 'push' | 'sms', value: boolean) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, [type]: value } : notif
-      )
-    )
+  const handleSettingChange = (category: keyof NotificationSettings, setting: string, value: boolean) => {
+    setSettings((prev) => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [setting]: value,
+      },
+    }))
+  }
+
+  const handleSave = async () => {
+    setIsLoading(true)
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      toast({
+        title: "موفقیت",
+        description: "تنظیمات اعلان‌ها با موفقیت ذخیره شد",
+      })
+    } catch (error) {
+      toast({
+        title: "خطا",
+        description: "خطا در ذخیره تنظیمات",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="space-y-6">
+      {/* Email Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-primary-main flex items-center space-x-2 space-x-reverse">
-            <Bell className="w-5 h-5" />
-            <span>تنظیمات اعلان‌ها</span>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            اعلان‌های ایمیل
           </CardTitle>
-          <CardDescription>مدیریت نحوه دریافت اعلان‌ها</CardDescription>
+          <CardDescription>مدیریت اعلان‌هایی که از طریق ایمیل دریافت می‌کنید</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="grid grid-cols-4 gap-4 pb-4 border-b border-neutral-light">
-              <div className="font-medium text-text-primary">نوع اعلان</div>
-              <div className="text-center">
-                <Mail className="w-5 h-5 mx-auto mb-1" />
-                <div className="text-sm">ایمیل</div>
-              </div>
-              <div className="text-center">
-                <Smartphone className="w-5 h-5 mx-auto mb-1" />
-                <div className="text-sm">پوش</div>
-              </div>
-              <div className="text-center">
-                <Smartphone className="w-5 h-5 mx-auto mb-1" />
-                <div className="text-sm">پیامک</div>
-              </div>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">تراکنش‌ها</p>
+              <p className="text-sm text-muted-foreground">اطلاع‌رسانی تراکنش‌های ورودی و خروجی</p>
             </div>
+            <Switch
+              checked={settings.email.transactions}
+              onCheckedChange={(value) => handleSettingChange("email", "transactions", value)}
+            />
+          </div>
 
-            {/* Notification Settings */}
-            {notifications.map((notification) => (
-              <div key={notification.id} className="grid grid-cols-4 gap-4 items-center py-4 border-b border-neutral-light last:border-b-0">
-                <div className="flex items-start space-x-3 space-x-reverse">
-                  <div className="text-primary-main mt-1">{notification.icon}</div>
-                  <div>
-                    <div className="font-medium text-text-primary">{notification.title}</div>
-                    <div className="text-sm text-text-secondary">{notification.description}</div>
-                  </div>
-                </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">امنیت</p>
+              <p className="text-sm text-muted-foreground">هشدارهای امنیتی و ورود به حساب</p>
+            </div>
+            <Switch
+              checked={settings.email.security}
+              onCheckedChange={(value) => handleSettingChange("email", "security", value)}
+            />
+          </div>
 
-                <div className="flex justify-center">
-                  <Switch
-                    checked={notification.email}
-                    onCheckedChange={(checked) => updateNotification(notification.id, 'email', checked)}
-                  />
-                </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">بازاریابی</p>
+              <p className="text-sm text-muted-foreground">اخبار محصولات و پیشنهادات ویژه</p>
+            </div>
+            <Switch
+              checked={settings.email.marketing}
+              onCheckedChange={(value) => handleSettingChange("email", "marketing", value)}
+            />
+          </div>
 
-                <div className="flex justify-center">
-                  <Switch
-                    checked={notification.push}
-                    onCheckedChange={(checked) => updateNotification(notification.id, 'push', checked)}
-                  />
-                </div>
-
-                <div className="flex justify-center">
-                  <Switch
-                    checked={notification.sms}
-                    onCheckedChange={(checked) => updateNotification(notification.id, 'sms', checked)}
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">به‌روزرسانی‌ها</p>
+              <p className="text-sm text-muted-foreground">اطلاع‌رسانی ویژگی‌های جدید و تغییرات</p>
+            </div>
+            <Switch
+              checked={settings.email.updates}
+              onCheckedChange={(value) => handleSettingChange("email", "updates", value)}
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Settings */}
+      <Separator />
+
+      {/* Push Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-primary-main">تنظیمات سریع</CardTitle>
-          <CardDescription>فعال/غیرفعال کردن سریع دسته‌بندی‌های اعلان</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            اعلان‌های Push
+          </CardTitle>
+          <CardDescription>مدیریت اعلان‌های داخل برنامه و مرورگر</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="all-notifications" className="font-medium">
-                همه اعلان‌ها
-              </Label>
-              <Switch
-                id="all-notifications"
-                checked={notifications.every(n => n.email && n.push)}
-                onCheckedChange={(checked) => {
-                  setNotifications(prev => 
-                    prev.map(notif => ({ 
-                      ...notif, 
-                      email: checked, 
-                      push: checked 
-                    }))
-                  )
-                }}
-              />
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">تراکنش‌ها</p>
+              <p className="text-sm text-muted-foreground">اطلاع‌رسانی فوری تراکنش‌ها</p>
             </div>
+            <Switch
+              checked={settings.push.transactions}
+              onCheckedChange={(value) => handleSettingChange("push", "transactions", value)}
+            />
+          </div>
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="security-only" className="font-medium">
-                فقط اعلان‌های امنیتی
-              </Label>
-              <Switch
-                id="security-only"
-                checked={notifications.find(n => n.id === 'security')?.email || false}
-                onCheckedChange={(checked) => {
-                  setNotifications(prev => 
-                    prev.map(notif => 
-                      notif.id === 'security' 
-                        ? { ...notif, email: checked, push: checked, sms: checked }
-                        : { ...notif, email: false, push: false, sms: false }
-                    )
-                  )
-                }}
-              />
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">هشدار قیمت</p>
+              <p className="text-sm text-muted-foreground">اطلاع‌رسانی تغییرات قیمت توکن‌ها</p>
             </div>
+            <Switch
+              checked={settings.push.priceAlerts}
+              onCheckedChange={(value) => handleSettingChange("push", "priceAlerts", value)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">امنیت</p>
+              <p className="text-sm text-muted-foreground">هشدارهای امنیتی فوری</p>
+            </div>
+            <Switch
+              checked={settings.push.security}
+              onCheckedChange={(value) => handleSettingChange("push", "security", value)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">اخبار</p>
+              <p className="text-sm text-muted-foreground">آخرین اخبار و تحلیل‌های بازار</p>
+            </div>
+            <Switch
+              checked={settings.push.news}
+              onCheckedChange={(value) => handleSettingChange("push", "news", value)}
+            />
           </div>
         </CardContent>
       </Card>
+
+      <Separator />
+
+      {/* SMS Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            اعلان‌های پیامکی
+          </CardTitle>
+          <CardDescription>مدیریت اعلان‌های ارسالی از طریق پیامک</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">امنیت</p>
+              <p className="text-sm text-muted-foreground">کدهای تأیید و هشدارهای امنیتی</p>
+            </div>
+            <Switch
+              checked={settings.sms.security}
+              onCheckedChange={(value) => handleSettingChange("sms", "security", value)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">تراکنش‌های مهم</p>
+              <p className="text-sm text-muted-foreground">تأیید تراکنش‌های بالای حد آستانه</p>
+            </div>
+            <Switch
+              checked={settings.sms.transactions}
+              onCheckedChange={(value) => handleSettingChange("sms", "transactions", value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={isLoading}>
+          {isLoading ? "در حال ذخیره..." : "ذخیره تنظیمات"}
+        </Button>
+      </div>
     </div>
   )
 }
