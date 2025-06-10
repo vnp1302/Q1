@@ -5,7 +5,6 @@ import { ActivityFeed } from "../components/ActivityFeed"
 import { BalanceWidget } from "../components/BalanceWidget"
 import { TrendingUp, TrendingDown } from "lucide-react"
 
-
 const portfolioData = [
   {
     title: "موجودی کل",
