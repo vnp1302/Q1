@@ -1,36 +1,50 @@
 "use client"
+
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import { Shield, Key, Smartphone, Eye, EyeOff, AlertTriangle } from 'lucide-react'
+import { Separator } from "@/components/ui/separator"
+import { useToast } from "@/hooks/use-toast"
+import { Shield, Smartphone, Key } from "lucide-react"
 
 export function SecuritySettings() {
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false)
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  })
+  const [emailNotifications, setEmailNotifications] = useState(true)
+  const [loginAlerts, setLoginAlerts] = useState(true)
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setPasswordData(prev => ({ ...prev, [name]: value }))
+  const handlePasswordChange = async () => {
+    setIsLoading(true)
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      toast({
+        title: "موفقیت",
+        description: "رمز عبور با موفقیت تغییر کرد",
+      })
+    } catch (error) {
+      toast({
+        title: "خطا",
+        description: "خطا در تغییر رمز عبور",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("رمز عبور جدید و تکرار آن یکسان نیستند")
-      return
-    }
-    // Handle password change
-    alert("رمز عبور با موفقیت تغییر کرد")
+  const handleTwoFactorToggle = async (enabled: boolean) => {
+    setTwoFactorEnabled(enabled)
+
+    toast({
+      title: enabled ? "فعال شد" : "غیرفعال شد",
+      description: enabled ? "احراز هویت دو مرحله‌ای فعال شد" : "احراز هویت دو مرحله‌ای غیرفعال شد",
+    })
   }
 
   return (
@@ -38,171 +52,117 @@ export function SecuritySettings() {
       {/* Password Change */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-primary-main flex items-center space-x-2 space-x-reverse">
-            <Key className="w-5 h-5" />
-            <span>تغییر رمز عبور</span>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            تغییر رمز عبور
           </CardTitle>
-          <CardDescription>برای امنیت بیشتر، رمز عبور قوی انتخاب کنید</CardDescription>
+          <CardDescription>رمز عبور قوی انتخاب کنید که شامل حروف، اعداد و نمادها باشد</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">رمز عبور فعلی</Label>
-              <div className="relative">
-                <Input
-                  id="currentPassword"
-                  name="currentPassword"
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={passwordData.currentPassword}
-                  onChange={handlePasswordChange}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-main"
-                >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">رمز عبور جدید</Label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  name="newPassword"
-                  type={showNewPassword ? "text" : "password"}
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-main"
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">تکرار رمز عبور جدید</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-
-            <Button type="submit" className="btn-primary">
-              تغییر رمز عبور
-            </Button>
-          </form>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">رمز عبور فعلی</Label>
+            <Input id="currentPassword" type="password" placeholder="رمز عبور فعلی را وارد کنید" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">رمز عبور جدید</Label>
+            <Input id="newPassword" type="password" placeholder="رمز عبور جدید را وارد کنید" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">تأیید رمز عبور جدید</Label>
+            <Input id="confirmPassword" type="password" placeholder="رمز عبور جدید را مجدداً وارد کنید" />
+          </div>
+          <Button onClick={handlePasswordChange} disabled={isLoading}>
+            {isLoading ? "در حال تغییر..." : "تغییر رمز عبور"}
+          </Button>
         </CardContent>
       </Card>
+
+      <Separator />
 
       {/* Two-Factor Authentication */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-primary-main flex items-center space-x-2 space-x-reverse">
-            <Smartphone className="w-5 h-5" />
-            <span>احراز هویت دو مرحله‌ای</span>
+          <CardTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5" />
+            احراز هویت دو مرحله‌ای
           </CardTitle>
-          <CardDescription>افزایش امنیت حساب با احراز هویت دو مرحله‌ای</CardDescription>
+          <CardDescription>امنیت حساب خود را با فعال‌سازی احراز هویت دو مرحله‌ای افزایش دهید</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <span className="font-medium">احراز هویت دو مرحله‌ای</span>
-                <Badge className={twoFactorEnabled ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-                  {twoFactorEnabled ? "فعال" : "غیرفعال"}
-                </Badge>
-              </div>
-              <p className="text-sm text-text-secondary">
-                {twoFactorEnabled 
-                  ? "حساب شما با احراز هویت دو مرحله‌ای محافظت می‌شود"
-                  : "برای امنیت بیشتر، احراز هویت دو مرحله‌ای را فعال کنید"
-                }
-              </p>
+              <p className="font-medium">احراز هویت دو مرحله‌ای</p>
+              <p className="text-sm text-muted-foreground">استفاده از اپلیکیشن احراز هویت برای ورود</p>
             </div>
-            <Switch
-              checked={twoFactorEnabled}
-              onCheckedChange={setTwoFactorEnabled}
-            />
+            <Switch checked={twoFactorEnabled} onCheckedChange={handleTwoFactorToggle} />
           </div>
 
           {twoFactorEnabled && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-medium">
-              <div className="flex items-center space-x-2 space-x-reverse text-green-800">
-                <Shield className="w-4 h-4" />
-                <span className="text-sm font-medium">احراز هویت دو مرحله‌ای فعال است</span>
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm">برای تکمیل تنظیمات، QR کد زیر را با اپلیکیشن احراز هویت خود اسکن کنید.</p>
+              <div className="mt-2 p-4 bg-white rounded border-2 border-dashed">
+                <p className="text-center text-muted-foreground">QR Code اینجا نمایش داده می‌شود</p>
               </div>
-              <p className="text-sm text-green-700 mt-1">
-                کدهای بازیابی خود را در مکان امنی نگهداری کنید
-              </p>
-              <Button variant="outline" size="sm" className="mt-2">
-                مشاهده کدهای بازیابی
-              </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Security Status */}
+      <Separator />
+
+      {/* Security Alerts */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-primary-main flex items-center space-x-2 space-x-reverse">
-            <Shield className="w-5 h-5" />
-            <span>وضعیت امنیت حساب</span>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            هشدارهای امنیتی
           </CardTitle>
+          <CardDescription>مدیریت اعلان‌های مربوط به امنیت حساب</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 border border-neutral-light rounded-medium">
-              <div className="flex items-center space-x-3 space-x-reverse">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm">رمز عبور قوی</span>
-              </div>
-              <Badge className="bg-green-100 text-green-800">تأیید شده</Badge>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">اعلان‌های ایمیل</p>
+              <p className="text-sm text-muted-foreground">دریافت ایمیل برای فعالیت‌های مشکوک</p>
             </div>
-
-            <div className="flex items-center justify-between p-3 border border-neutral-light rounded-medium">
-              <div className="flex items-center space-x-3 space-x-reverse">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm">ایمیل تأیید شده</span>
-              </div>
-              <Badge className="bg-green-100 text-green-800">تأیید شده</Badge>
-            </div>
-
-            <div className="flex items-center justify-between p-3 border border-neutral-light rounded-medium">
-              <div className="flex items-center space-x-3 space-x-reverse">
-                <div className={`w-2 h-2 ${twoFactorEnabled ? 'bg-green-500' : 'bg-yellow-500'} rounded-full`}></div>
-                <span className="text-sm">احراز هویت دو مرحله‌ای</span>
-              </div>
-              <Badge className={twoFactorEnabled ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
-                {twoFactorEnabled ? "فعال" : "توصیه می‌شود"}
-              </Badge>
-            </div>
+            <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
           </div>
 
-          {!twoFactorEnabled && (
-            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-medium">
-              <div className="flex items-center space-x-2 space-x-reverse text-yellow-800">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm font-medium">توصیه امنیتی</span>
-              </div>
-              <p className="text-sm text-yellow-700 mt-1">
-                برای افزایش امنیت حساب، احراز هویت دو مرحله‌ای را فعال کنید
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">هشدار ورود</p>
+              <p className="text-sm text-muted-foreground">اطلاع‌رسانی ورود از دستگاه‌های جدید</p>
             </div>
-          )}
+            <Switch checked={loginAlerts} onCheckedChange={setLoginAlerts} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Active Sessions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>جلسات فعال</CardTitle>
+          <CardDescription>مدیریت دستگاه‌هایی که به حساب شما متصل هستند</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <p className="font-medium">مرورگر فعلی</p>
+                <p className="text-sm text-muted-foreground">Chrome - تهران، ایران</p>
+              </div>
+              <span className="text-sm text-green-600">فعال</span>
+            </div>
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <p className="font-medium">موبایل</p>
+                <p className="text-sm text-muted-foreground">iOS App - 2 روز پیش</p>
+              </div>
+              <Button variant="outline" size="sm">
+                قطع اتصال
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
