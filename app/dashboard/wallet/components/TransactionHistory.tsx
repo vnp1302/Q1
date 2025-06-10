@@ -1,163 +1,264 @@
 "use client"
+
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, ExternalLink } from 'lucide-react'
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Search, Download, ExternalLink, ArrowUpRight, ArrowDownLeft, RefreshCw } from "lucide-react"
+import { useApi } from "@/src/hooks/useApi"
 
 interface Transaction {
   id: string
-  type: "send" | "receive" | "swap"
-  token: string
-  amount: number
-  value: number
-  to?: string
-  from?: string
   hash: string
+  type: "send" | "receive" | "stake" | "unstake" | "bridge" | "swap"
+  status: "pending" | "confirmed" | "failed"
+  amount: number
+  token: {
+    symbol: string
+    name: string
+    logo: string
+  }
+  valueUSD: number
+  fee: number
+  feeUSD: number
   timestamp: string
-  status: "completed" | "pending" | "failed"
+  from?: string
+  to?: string
+  blockNumber?: number
+  confirmations?: number
 }
 
-const transactions: Transaction[] = [
-  {
-    id: "1",
-    type: "receive",
-    token: "Q2",
-    amount: 1000,
-    value: 6000,
-    from: "q2x1xyz...abc789",
-    hash: "0x1234...5678",
-    timestamp: "2024-01-15T10:30:00Z",
-    status: "completed",
-  },
-  {
-    id: "2",
-    type: "send",
-    token: "ETH",
-    amount: 0.5,
-    value: 1250,
-    to: "0xabc...def123",
-    hash: "0x9876...5432",
-    timestamp: "2024-01-14T15:45:00Z",
-    status: "completed",
-  },
-  {
-    id: "3",
-    type: "swap",
-    token: "USDT → Q2",
-    amount: 500,
-    value: 500,
-    hash: "0xdef...abc456",
-    timestamp: "2024-01-13T09:15:00Z",
-    status: "pending",
-  },
-]
+const TRANSACTION_TYPES = {
+  send: { label: "ارسال", icon: ArrowUpRight, color: "text-red-500" },
+  receive: { label: "دریافت", icon: ArrowDownLeft, color: "text-green-500" },
+  stake: { label: "استیک", icon: RefreshCw, color: "text-blue-500" },
+  unstake: { label: "آن‌استیک", icon: RefreshCw, color: "text-orange-500" },
+  bridge: { label: "پل", icon: RefreshCw, color: "text-purple-500" },
+  swap: { label: "تبدیل", icon: RefreshCw, color: "text-indigo-500" },
+}
+
+const STATUS_STYLES = {
+  pending: { label: "در انتظار", variant: "secondary" as const },
+  confirmed: { label: "تأیید شده", variant: "default" as const },
+  failed: { label: "ناموفق", variant: "destructive" as const },
+}
 
 export function TransactionHistory() {
-  const getTransactionIcon = (type: string) => {
-    switch (type) {
-      case "send":
-        return <ArrowUpRight className="w-4 h-4 text-red-600" />
-      case "receive":
-        return <ArrowDownLeft className="w-4 h-4 text-green-600" />
-      case "swap":
-        return <ArrowLeftRight className="w-4 h-4 text-blue-600" />
-      default:
-        return null
-    }
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedType, setSelectedType] = useState<string>("all")
+  const [selectedStatus, setSelectedStatus] = useState<string>("all")
+
+  const { data: transactions, loading, error, refetch } = useApi<Transaction[]>("/api/wallet/transactions")
+
+  const filteredTransactions =
+    transactions?.filter((tx) => {
+      const matchesSearch =
+        tx.hash.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.token.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesType = selectedType === "all" || tx.type === selectedType
+      const matchesStatus = selectedStatus === "all" || tx.status === selectedStatus
+      return matchesSearch && matchesType && matchesStatus
+    }) || []
+
+  const handleExportTransactions = () => {
+    // Export functionality
+    console.log("Exporting transactions...")
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800"
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "failed":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
+  if (loading) {
+    return <TransactionHistorySkeleton />
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "تکمیل شده"
-      case "pending":
-        return "در انتظار"
-      case "failed":
-        return "ناموفق"
-      default:
-        return "نامشخص"
-    }
-  }
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "send":
-        return "ارسال"
-      case "receive":
-        return "دریافت"
-      case "swap":
-        return "تبدیل"
-      default:
-        return type
-    }
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">خطا در بارگذاری تاریخچه تراکنش‌ها</div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-primary-main">تاریخچه تراکنش‌ها</CardTitle>
-          <Button variant="outline" size="sm">
-            مشاهده همه
-          </Button>
+          <CardTitle className="text-lg">تاریخچه تراکنش‌ها</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportTransactions}>
+              <Download className="h-4 w-4 ml-2" />
+              خروجی
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="جستجو در تراکنش‌ها..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+
+          <Tabs value={selectedType} onValueChange={setSelectedType} className="w-auto">
+            <TabsList className="grid grid-cols-4 lg:grid-cols-7">
+              <TabsTrigger value="all" className="text-xs">
+                همه
+              </TabsTrigger>
+              <TabsTrigger value="send" className="text-xs">
+                ارسال
+              </TabsTrigger>
+              <TabsTrigger value="receive" className="text-xs">
+                دریافت
+              </TabsTrigger>
+              <TabsTrigger value="stake" className="text-xs">
+                استیک
+              </TabsTrigger>
+              <TabsTrigger value="bridge" className="text-xs">
+                پل
+              </TabsTrigger>
+              <TabsTrigger value="swap" className="text-xs">
+                تبدیل
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {transactions.map((tx) => (
-            <div
-              key={tx.id}
-              className="flex items-center justify-between p-4 border border-neutral-light rounded-medium hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center space-x-4 space-x-reverse">
-                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  {getTransactionIcon(tx.type)}
-                </div>
-                <div>
-                  <div className="font-semibold text-text-primary">
-                    {getTypeLabel(tx.type)} {tx.token}
+
+      <CardContent className="p-0">
+        <div className="max-h-96 overflow-y-auto">
+          {filteredTransactions.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground">
+              {searchQuery ? "تراکنشی یافت نشد" : "هیچ تراکنشی موجود نیست"}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {filteredTransactions.map((transaction) => (
+                <TransactionItem key={transaction.id} transaction={transaction} />
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+interface TransactionItemProps {
+  transaction: Transaction
+}
+
+function TransactionItem({ transaction }: TransactionItemProps) {
+  const typeConfig = TRANSACTION_TYPES[transaction.type]
+  const statusConfig = STATUS_STYLES[transaction.status]
+  const TypeIcon = typeConfig.icon
+
+  const formatDate = (timestamp: string) => {
+    return new Intl.DateTimeFormat("fa-IR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(timestamp))
+  }
+
+  const handleViewOnExplorer = () => {
+    window.open(`https://explorer.example.com/tx/${transaction.hash}`, "_blank")
+  }
+
+  return (
+    <div className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors border-b last:border-b-0">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-full bg-muted ${typeConfig.color}`}>
+          <TypeIcon className="h-4 w-4" />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={transaction.token.logo || "/placeholder.svg"} alt={transaction.token.name} />
+            <AvatarFallback>{transaction.token.symbol.slice(0, 2)}</AvatarFallback>
+          </Avatar>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{typeConfig.label}</span>
+              <Badge variant={statusConfig.variant} className="text-xs">
+                {statusConfig.label}
+              </Badge>
+            </div>
+            <div className="text-sm text-muted-foreground">{formatDate(transaction.timestamp)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-left">
+        <div className="font-medium">
+          <span className={transaction.type === "send" ? "text-red-500" : "text-green-500"}>
+            {transaction.type === "send" ? "-" : "+"}
+            {transaction.amount.toLocaleString("fa-IR")} {transaction.token.symbol}
+          </span>
+          <div className="text-sm text-muted-foreground">${transaction.valueUSD.toLocaleString("en-US")}</div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-muted-foreground">
+            کارمزد: {transaction.fee} ({transaction.feeUSD.toFixed(2)}$)
+          </span>
+          <Button variant="ghost" size="sm" onClick={handleViewOnExplorer} className="h-6 w-6 p-0">
+            <ExternalLink className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TransactionHistorySkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="w-32 h-6 bg-muted rounded animate-pulse" />
+          <div className="flex gap-2">
+            <div className="w-16 h-8 bg-muted rounded animate-pulse" />
+            <div className="w-8 h-8 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="flex gap-4">
+          <div className="flex-1 h-10 bg-muted rounded animate-pulse" />
+          <div className="w-48 h-10 bg-muted rounded animate-pulse" />
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="space-y-1">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-muted rounded-full animate-pulse" />
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-muted rounded-full animate-pulse" />
+                  <div className="space-y-1">
+                    <div className="w-20 h-4 bg-muted rounded animate-pulse" />
+                    <div className="w-24 h-3 bg-muted rounded animate-pulse" />
                   </div>
-                  <div className="text-sm text-text-secondary">
-                    {new Date(tx.timestamp).toLocaleDateString("fa-IR")} - {new Date(tx.timestamp).toLocaleTimeString("fa-IR")}
-                  </div>
                 </div>
               </div>
-
-              <div className="text-center">
-                <div className="font-semibold text-text-primary">
-                  {tx.type === "send" ? "-" : tx.type === "receive" ? "+" : ""}{tx.amount} {tx.token.split(" ")[0]}
-                </div>
-                <div className="text-sm text-text-secondary">
-                  ${tx.value.toLocaleString()}
-                </div>
+              <div className="text-left space-y-1">
+                <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+                <div className="w-16 h-3 bg-muted rounded animate-pulse" />
+                <div className="w-20 h-3 bg-muted rounded animate-pulse" />
               </div>
-
-              <div className="text-center">
-                <Badge className={getStatusColor(tx.status)}>
-                  {getStatusLabel(tx.status)}
-                </Badge>
-                <div className="text-xs text-text-secondary mt-1">
-                  {tx.to && `به: ${tx.to.substring(0, 8)}...`}
-                  {tx.from && `از: ${tx.from.substring(0, 8)}...`}
-                </div>
-              </div>
-
-              <Button variant="ghost" size="icon">
-                <ExternalLink className="w-4 h-4" />
-              </Button>
             </div>
           ))}
         </div>
