@@ -1,44 +1,33 @@
-const path = require("path")
+const { withSentryConfig } = require("@next/sentry")
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+  enabled: process.env.ANALYZE === "true",
+})
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // TypeScript و ESLint تنظیمات
-  typescript: {
-    ignoreBuildErrors: false, // بهتر است false باشد برای تولید
-  },
-  eslint: {
-    ignoreDuringBuilds: false, // بهتر است false باشد برای تولید
+  // Core Configuration
+  reactStrictMode: true,
+  swcMinify: true,
+  experimental: {
+    appDir: true,
+    serverComponentsExternalPackages: ["@prisma/client"],
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+    turbo: {
+      rules: {
+        "*.svg": {
+          loaders: ["@svgr/webpack"],
+          as: "*.js",
+        },
+      },
+    },
   },
 
-  // متغیرهای محیطی
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
-    BUILD_TIME: new Date().toISOString(),
-  },
-
-  // تنظیمات امنیتی Headers
+  // Security Headers
   async headers() {
     return [
       {
         source: "/(.*)",
         headers: [
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
-              "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
-              "img-src 'self' data: https: blob:",
-              "connect-src 'self' wss: https: ws:",
-              "media-src 'self' https:",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'none'",
-              "upgrade-insecure-requests",
-            ].join("; "),
-          },
           {
             key: "X-Frame-Options",
             value: "DENY",
@@ -49,144 +38,141 @@ const nextConfig = {
           },
           {
             key: "X-XSS-Protection",
-            value: "1; mode=block",
+            value: "0",
           },
           {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
           },
           {
-            key: "Strict-Transport-Security",
-            value: "max-age=31536000; includeSubDomains; preload",
+            key: "Cross-Origin-Embedder-Policy",
+            value: "require-corp",
+          },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "same-origin",
           },
           {
             key: "Permissions-Policy",
-            value: "geolocation=(), microphone=(), camera=(), payment=(), usb=()",
-          },
-        ],
-      },
-      // API Headers جداگانه
-      {
-        source: "/api/:path*",
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            value: process.env.NODE_ENV === "production" ? "https://yourdomain.com" : "*",
+            value: "geolocation=(), camera=(), microphone=(), payment=(), usb=(), bluetooth=()",
           },
           {
-            key: "Access-Control-Allow-Methods",
-            value: "GET, POST, PUT, DELETE, OPTIONS",
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
           },
           {
-            key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization, X-Requested-With",
-          },
-          {
-            key: "Access-Control-Max-Age",
-            value: "86400",
+            key: "Content-Security-Policy",
+            value:
+              process.env.NODE_ENV === "production"
+                ? "default-src 'none'; script-src 'self' 'nonce-{NONCE}' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' wss: https:; font-src 'self'; object-src 'none'; media-src 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'"
+                : "default-src 'self' 'unsafe-eval' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss:;",
           },
         ],
       },
     ]
   },
 
-  // Redirects
+  // Environment Variables
+  env: {
+    ANALYZE: process.env.ANALYZE,
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+    SENTRY_ORG: process.env.SENTRY_ORG,
+    SENTRY_PROJECT: process.env.SENTRY_PROJECT,
+  },
+
+  // Image Optimization
+  images: {
+    domains: ["localhost"],
+    formats: ["image/webp", "image/avif"],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: false,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
+
+  // Internationalization
+  i18n: {
+    locales: ["en", "fa"],
+    defaultLocale: "en",
+    localeDetection: true,
+  },
+
+  // Redirects and Rewrites
   async redirects() {
     return [
       {
         source: "/admin",
         destination: "/dashboard",
-        permanent: false,
-      },
-      {
-        source: "/login",
-        destination: "/auth/signin",
-        permanent: false,
+        permanent: true,
       },
     ]
   },
 
-  // Rewrites برای API versioning
   async rewrites() {
     return [
       {
-        source: "/api/v1/:path*",
-        destination: "/api/:path*",
+        source: "/api/health",
+        destination: "/api/system/health",
       },
     ]
   },
 
-  // Webpack تنظیمات
-  webpack: (config, { dev, isServer }) => {
-    // Path aliases
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      "@": path.resolve(__dirname, "src"),
-      "@/components": path.resolve(__dirname, "src/components"),
-      "@/lib": path.resolve(__dirname, "src/lib"),
-      "@/types": path.resolve(__dirname, "src/types"),
+  // Webpack Configuration
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Security: Disable eval in production
+    if (!dev) {
+      config.devtool = false
     }
 
-    // Security و optimization plugins
-    if (!dev) {
+    // Bundle Analysis
+    if (process.env.ANALYZE === "true") {
       config.plugins.push(
-        new (require("webpack").DefinePlugin)({
-          "process.env.BUILD_TIME": JSON.stringify(new Date().toISOString()),
-          "process.env.BUILD_VERSION": JSON.stringify(process.env.npm_package_version || "1.0.0"),
+        new webpack.DefinePlugin({
+          "process.env.BUNDLE_ANALYZE": JSON.stringify("true"),
         }),
       )
     }
 
-    // WebSocket support
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      }
-    }
+    // Custom Key Injection
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        "process.env.CUSTOM_KEY": JSON.stringify(process.env.CUSTOM_KEY),
+      }),
+    )
 
     return config
   },
 
-  // تنظیمات تولید
-  swcMinify: true,
-  compress: true,
-  poweredByHeader: false,
-  generateEtags: true, // بهتر است true باشد برای کش
-
-  // تنظیمات تصاویر
-  images: {
-    domains: ["localhost", "yourdomain.com", "api.binance.com", "cdn.jsdelivr.net"],
-    formats: ["image/webp", "image/avif"],
-    minimumCacheTTL: 60,
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-  },
-
-  // API routes تنظیمات
-  api: {
-    bodyParser: {
-      sizeLimit: "2mb", // افزایش برای فایل‌های بزرگتر
-    },
-    responseLimit: "10mb",
-    externalResolver: true,
-  },
-
-  // Experimental features
-  experimental: {
-    serverComponentsExternalPackages: ["prisma", "@prisma/client"],
-    optimizePackageImports: ["lucide-react", "recharts"],
-  },
-
-  // Output configuration
+  // Output Configuration
   output: "standalone",
+  generateEtags: false,
+  poweredByHeader: false,
+  compress: true,
 
-  // Compiler options
-  compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
+  // TypeScript Configuration
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  // ESLint Configuration
+  eslint: {
+    ignoreDuringBuilds: false,
+    dirs: ["app", "src", "components", "lib"],
   },
 }
 
-module.exports = nextConfig
+// Sentry Configuration
+const sentryWebpackPluginOptions = {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: true,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+}
+
+module.exports = withSentryConfig(withBundleAnalyzer(nextConfig), sentryWebpackPluginOptions)
