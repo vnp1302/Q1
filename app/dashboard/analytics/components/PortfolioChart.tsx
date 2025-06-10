@@ -1,49 +1,103 @@
 "use client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { TrendingUp, TrendingDown } from "lucide-react"
+
+interface ChartData {
+  date: string
+  value: number
+  change: number
+}
 
 export function PortfolioChart() {
-  const [timeRange, setTimeRange] = useState("7d")
+  const [timeframe, setTimeframe] = useState<"1D" | "1W" | "1M" | "3M" | "1Y">("1M")
 
-  // Mock data for demonstration
-  const chartData = {
-    "1d": [100, 102, 98, 105, 103, 108, 110],
-    "7d": [100, 105, 102, 110, 108, 115, 120, 118],
-    "30d": [100, 110, 105, 120, 115, 125, 130, 128, 135, 140],
-    "1y": [100, 120, 110, 140, 130, 150, 160, 155, 170, 180, 175, 190],
-  }
+  // Mock data - در پیاده‌سازی واقعی از API دریافت می‌شود
+  const chartData: ChartData[] = [
+    { date: "2024-01-01", value: 10000, change: 0 },
+    { date: "2024-01-02", value: 10250, change: 2.5 },
+    { date: "2024-01-03", value: 9800, change: -4.4 },
+    { date: "2024-01-04", value: 11200, change: 14.3 },
+    { date: "2024-01-05", value: 11800, change: 5.4 },
+  ]
+
+  const currentValue = 11800
+  const totalChange = 18.0
+  const totalChangeAmount = 1800
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-primary-main">نمودار عملکرد پورتفولیو</CardTitle>
-            <CardDescription>تغییرات ارزش کل دارایی‌های شما</CardDescription>
+          <CardTitle>نمودار پرتفوی</CardTitle>
+          <div className="flex gap-1">
+            {(["1D", "1W", "1M", "3M", "1Y"] as const).map((period) => (
+              <Button
+                key={period}
+                variant={timeframe === period ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTimeframe(period)}
+              >
+                {period}
+              </Button>
+            ))}
           </div>
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1d">۱ روز</SelectItem>
-              <SelectItem value="7d">۷ روز</SelectItem>
-              <SelectItem value="30d">۳۰ روز</SelectItem>
-              <SelectItem value="1y">۱ سال</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-80 flex items-center justify-center bg-gray-50 rounded-medium">
-          <div className="text-center text-text-secondary">
-            <div className="text-4xl mb-4">📊</div>
-            <p>نمودار عملکرد پورتفولیو</p>
-            <p className="text-sm mt-2">بازه زمانی: {timeRange}</p>
-            <p className="text-xs mt-1">
-              (در پیاده‌سازی واقعی، از کتابخانه‌هایی مانند Chart.js یا Recharts استفاده می‌شود)
-            </p>
+        <div className="space-y-4">
+          {/* مقدار فعلی */}
+          <div className="space-y-2">
+            <div className="text-3xl font-bold">${currentValue.toLocaleString("en-US")}</div>
+            <div className="flex items-center gap-2">
+              <Badge variant={totalChange >= 0 ? "default" : "destructive"} className="flex items-center gap-1">
+                {totalChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {totalChange >= 0 ? "+" : ""}
+                {totalChange}%
+              </Badge>
+              <span className={`text-sm ${totalChange >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {totalChange >= 0 ? "+" : ""}${totalChangeAmount.toLocaleString("en-US")}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                در{" "}
+                {timeframe === "1D"
+                  ? "روز گذشته"
+                  : timeframe === "1W"
+                    ? "هفته گذشته"
+                    : timeframe === "1M"
+                      ? "ماه گذشته"
+                      : timeframe === "3M"
+                        ? "3 ماه گذشته"
+                        : "سال گذشته"}
+              </span>
+            </div>
+          </div>
+
+          {/* نمودار ساده */}
+          <div className="h-64 bg-muted/20 rounded-lg flex items-center justify-center">
+            <div className="text-center space-y-2">
+              <div className="text-muted-foreground">نمودار پرتفوی</div>
+              <div className="text-sm text-muted-foreground">نمودار تعاملی در نسخه کامل پیاده‌سازی خواهد شد</div>
+            </div>
+          </div>
+
+          {/* آمار سریع */}
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">بالاترین مقدار</div>
+              <div className="font-medium">$12,450</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">پایین‌ترین مقدار</div>
+              <div className="font-medium">$9,200</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">میانگین</div>
+              <div className="font-medium">$10,825</div>
+            </div>
           </div>
         </div>
       </CardContent>
